@@ -1,4 +1,4 @@
-
+import cv2
 import pygame as pg
 import pygame.locals
 

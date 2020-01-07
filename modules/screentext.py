@@ -1,19 +1,7 @@
 import pygame as pg
-import pygame.locals
-
-import thorpy
-
 import numpy as np
 import pygame.math as pm
-import pygame.freetype
 import sys, os
-import json
-import pickle
-import hashlib as sh
-import threading
-import time
-
-from matplotlib import pyplot as plt
 
 class ScreenText:
     """Esta clase controla el texto que será mostrado por pantalla"""
