@@ -3,6 +3,8 @@ import numpy as np
 import pygame.math as pm
 import sys, os
 import json
+import cv2
+
 
 from modules.drawable import Drawable
 
@@ -34,9 +36,13 @@ class Image(Drawable):
 
     def _load_image(self):
         try:
-            self.pg_img = pg.image.load(self.filename)
-            self.original_size_v = self.pg_img.get_size()
+            self.img_array = cv2.imread(self.filename)[:, :, ::-1]
+            self.original_size_v = self.img_array.shape[1::-1]
+            
+##            self.pg_img = pg.image.load(self.filename)
+##            self.original_size_v = self.pg_img.get_size()
             return True
+        
         except:
             print(' - WARNING, Image, no se pudo abrir la imagen:', self.filename, file=sys.stderr)
             return False
@@ -56,10 +62,15 @@ class Image(Drawable):
 
         zoom = self.scale*self.parent.global_zoom_factor
         
-        new_size_v = list(int(zoom * s) for s in self.original_size_v)
+        new_size_v = tuple(int(zoom * s) for s in self.original_size_v)
 
         if self.size_v != new_size_v:
-            self.img_to_plot = pg.transform.scale(self.pg_img, new_size_v)
+##            self.img_to_plot = pg.transform.scale(self.pg_img, new_size_v)
+            self.img_to_plot = cv2.resize(self.img_array, new_size_v, interpolation=cv2.INTER_CUBIC)
+
+            self.img_to_plot = np.transpose(self.img_to_plot, [1,0,2])
+            self.img_to_plot = pg.surfarray.make_surface(self.img_to_plot)
+            
             self.size_v = new_size_v
             
         self.parent.screen.blit(self.img_to_plot,
