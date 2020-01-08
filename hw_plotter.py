@@ -31,7 +31,7 @@ class Plotter:
         self.global_pos           = pm.Vector2(0, -self.screen_size[1]) # coord canvas    
         self.global_zoom_factor   = 1.0 # coord screen
         self.global_zoomf_min     = 0.2
-        self.global_zoomf_max     = 5
+        self.global_zoomf_max     = 7
         self.screen_mouse_pos     = pm.Vector2(0,0) # coord screen
         self.screen_mouse_dx      = 0
         self.screen_mouse_dy      = 0
@@ -76,14 +76,16 @@ class Plotter:
                                               'color_5': (192,197,206),
                                               'color_6': (243,207,122),
                                               'color_7': (172, 63, 33),
+                                              'color_8': (26, 140, 255),
+                                              'color_9': (255, 102, 0),
                                               
                                               'red':     (255,  0,  0),
-                                              'green':   (  0,255,  0),
-                                              'blue':    (  0,  0,255),
+                                              'green':   (0, 179, 0),
+                                              'blue':    (0, 0, 255),
 
                                               'red_sel':     (128,  0,  0),
-                                              'green_sel':   (  0,128,  0),
-                                              'blue_sel':    (  0,  0,128)}
+                                              'green_sel':   (115, 230, 0),
+                                              'blue_sel':    (0, 0, 255)}
 
                                   }
 
@@ -139,13 +141,10 @@ class Plotter:
 
         self.UM_bg_c                = self.palette_color_d[color_palette]['color_1'] # color de background en Modo Usuario
         self.EM_bg_c                = self.palette_color_d[color_palette]['color_3'] # color de background en Modo Edición
-        self.screen_txt_c           = self.palette_color_d[color_palette]['color_6'] # color usado para el texto de la información mostrada por pantalla
+        self.screen_txt_c           = self.palette_color_d[color_palette]['color_8'] # color usado para el texto de la información mostrada por pantalla
         
-        self.EM_obj_body_selected_c = self.palette_color_d[color_palette]['color_4'] # color de cuerpo del objeto node en Modo Edición cuando esta seleccionado
-        self.EM_obj_line_selected_c = self.palette_color_d[color_palette]['color_7'] # color de linea del objeto Node en Modo Edición cuando esta seleccionado
-        self.EM_aux_axes_c          = self.palette_color_d[color_palette]['color_4'] # color de linea los ejes auxiliares en Modo Edición
 
-
+        self.EM_obj_line_selected_c = self.palette_color_d[color_palette]['color_9']
 
         self.color_line_text       = self.palette_color_d[color_palette]['red']
         
@@ -294,11 +293,15 @@ class Plotter:
            clockwise = True:  horario
            clockwise = False: anti-horario """
 
-        to_rotate_v = self.edit_obj_list_v + self.obj_list_v
+        to_rotate_v = [o for o in self.edit_obj_list_v + self.obj_list_v if type(o) is not str]
+        
         if len(to_rotate_v) == 0:
             return None
-        
-        pos_ref = to_rotate_v[0].get_pos()
+
+        if len(to_rotate_v) > 1:
+            pos_ref = to_rotate_v[0].get_pos()
+        else:
+            pos_ref = None
         
         if not clockwise:
             d_angle = -d_angle
@@ -547,7 +550,8 @@ class Plotter:
                                      '{} : {:0.2f}'.format('Tick', self.clock_tick),                                     
                                      '{} : {:.2f}'.format('Zoom factor',self.global_zoom_factor),
                                      '{} : {:d}'.format('obj count', len(self.edit_obj_list_v)+len(self.obj_list_v)),
-                                     '{} : {}'.format('Canvas Pos', self.canvas_mouse_pos)
+                                     '{} : {}'.format('Canvas Pos', self.canvas_mouse_pos),
+                                     '{} : {}'.format('Screen Pos', self.screen_mouse_pos)
                                      )
 
                                                            
@@ -646,10 +650,12 @@ class Plotter:
 
         self.file_name = os.path.splitext(image_path)[0] + '.ptr'
         
-        pos = self.coord_screen2coord_canvas(screen_pos = screen_pos)
+        pos = self.coord_screen2coord_canvas(screen_pos=screen_pos)
+        
         new_obj = Image(pos=pos,
                         filename=image_path,
                         parent=self)
+        
         self.obj_list_v.append(new_obj)
         self.onEditionChanged = True
         
@@ -736,6 +742,7 @@ class Plotter:
 
         pressed_ctrl  = (keys_pressed_v[pg.K_LCTRL] or keys_pressed_v[pg.K_RCTRL])
         pressed_shift = (keys_pressed_v[pg.K_LSHIFT] or keys_pressed_v[pg.K_RSHIFT])
+        pressed_alt   = (keys_pressed_v[pg.K_LALT] or keys_pressed_v[pg.K_RALT])
         for event in events_v:
             self.slider.react(event)
 
@@ -863,8 +870,8 @@ class Plotter:
                 if self.edit_Mode:
 
                     # rotación de los objetos seleccionados (anti-horario)
-                    if (event.key == pg.K_r):
-                        self.rotate(clockwise= not pressed_shift)
+                    if (event.key == pg.K_r) and pressed_ctrl:
+                        self.rotate(d_angle=30 if pressed_alt else 1, clockwise=not pressed_shift)
 
                     elif (event.key == pg.K_e):
                         self.change_e()

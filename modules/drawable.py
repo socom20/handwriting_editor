@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 
 class Drawable():
     def __init__(self):
+        self.pos = pm.Vector2(100.0,100.0)
         return None
 
     def whoami(self):
@@ -129,7 +130,7 @@ class Drawable():
     def get_pos(self):
         """Retorna la posición actual del pipe"""
         print("WARNING, Drawable, Método {} no implementado".format(self.whoami()), file=sys.stderr)
-        return pm.Vector2(100.0,100.0)
+        return self.pos
 
     def set_angle(self, angle):
         """Se modifica el ángulo de inclinación del objeto"""

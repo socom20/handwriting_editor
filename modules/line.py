@@ -146,6 +146,7 @@ class Line(Drawable):
             pg.draw.lines(self.parent.screen, self.parent.EM_obj_line_selected_c, False, to_draw, self.width)
 
         return None
+
         
     def draw_line(self):
         """dibujamos la linea de la linea"""
