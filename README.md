@@ -9,6 +9,20 @@ Los segmentos de los trazos pueden ser verder, para indicar que el lapiz se encu
 
 Por lo generar un trazo debe agrupar no más de 5 palabras de las cartas.
 
+
+# Instalando dependencias:
+
+El editor está programado en Python3. Necesita las siguientes dependencias:
+```
+pip3 install opencv-contrib-python
+pip3 install scikit-image
+pip3 install pygame
+pip3 install thorpy
+pip3 install numpy
+pip3 install scipy
+pip3 install matplotlib
+```
+
 # Manual de usuario del editor HW_Plotter
 
 ## Editar de trazos
