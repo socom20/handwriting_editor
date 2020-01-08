@@ -66,6 +66,10 @@ class Plotter:
         self.using_aux_axes       = False
         self.last_click           = None
 
+
+        self.mouse_helper_on      = False
+
+        
         self.file_name = 'salvado.ptr'
 
         
@@ -303,7 +307,7 @@ class Plotter:
         else:
             pos_ref = None
         
-        if not clockwise:
+        if clockwise:
             d_angle = -d_angle
     
         for o in to_rotate_v:
@@ -475,7 +479,7 @@ class Plotter:
 
     def edit_text(self):
         print('Editando:')
-        print( self.edit_obj_list_v, type(self.edit_obj_list_v[0]), type(self.edit_obj_list_v[0]) is Line)
+##        print( self.edit_obj_list_v, type(self.edit_obj_list_v[0]), type(self.edit_obj_list_v[0]) is Line)
         if len(self.edit_obj_list_v) == 1 and type(self.edit_obj_list_v[0]) is Line:
             self.edit_obj_list_v[0].edit_text()
             self.onEditionChanged = True
@@ -721,6 +725,23 @@ class Plotter:
         return None
 
 
+    def switch_helper(self):
+        if self.mouse_helper_on:
+            for o in self.obj_list_v + self.edit_obj_list_v:
+                if type(o) is Image:
+                    o.deactivate_mouse_helper()
+
+            self.mouse_helper_on = False
+        else:
+            for o in self.obj_list_v + self.edit_obj_list_v:
+                if type(o) is Image:
+                    o.activate_mouse_helper()
+
+            self.mouse_helper_on = True
+
+
+        return None
+
     def get_global_pos(self):
         return self.global_pos
 
@@ -876,6 +897,9 @@ class Plotter:
                     elif (event.key == pg.K_e):
                         self.change_e()
 
+                    elif (event.key == pg.K_h):
+                        self.switch_helper()
+
                     elif (event.key == pg.K_c):
                         self.cut_at_point()
                         
@@ -992,6 +1016,8 @@ if __name__ =='__main__':
     ptr = Plotter()
     ptr.switch_mode()
     ptr.new_image(image_path='./samples/CartaA.png')
+    ptr.switch_helper()
+    
     ptr.main_loop()
 
     
