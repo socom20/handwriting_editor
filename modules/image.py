@@ -29,17 +29,33 @@ class Image(Drawable):
 
         self.run_helper       = False
         self.blit_helper      = False
+        self.helper_p_min_v   = None
+        self.helper_win_size  = (100,100)
+        self._calc_helper_dist_matrixes()
 
 
         self.last_angle = None
         self.last_zoom = None
         self.last_mode = None
+
+        
             
         while self.filename is None or self._load_image() == False:
             self._ask_image_path()
             
         return None
 
+
+    def _calc_helper_dist_matrixes(self):
+        
+        m_shape = self.helper_win_size[::-1]
+
+        assert m_shape[0] % 2 == 0 and m_shape[1] % 2 == 0, ' - ERROR, _calc_helper_dist_matrixes: helper_win_size must be even.'
+        
+        self.helper_idx_m = np.concatenate([ np.repeat(np.arange(m_shape[0])[:,np.newaxis], m_shape[1],  axis=-1)[...,np.newaxis], np.repeat(np.arange(m_shape[1])[np.newaxis,:], m_shape[0],  axis=0)[...,np.newaxis]], axis=-1)
+        self.helper_d_m   = np.sqrt(np.square(self.helper_idx_m[...,0] - (m_shape[0]-1)/2) +np.square(self.helper_idx_m[...,1] - (m_shape[1]-1)/2))
+        
+        return None        
 
     def _load_image(self):
         try:
@@ -100,10 +116,11 @@ class Image(Drawable):
 ##                                                    mask=None,
 ##                                                    return_distance=False)
 
-
+        array_proc_bool = np.array(array_proc, dtype=np.bool)
+        
         array_proc = np.repeat(255*array_proc[...,np.newaxis], 3, axis=-1).astype(np.uint8)
         
-        return array_proc
+        return array_proc, array_proc_bool
 
     def activate_mouse_helper(self, do_blit=True):
         self.run_helper       = True
@@ -117,10 +134,10 @@ class Image(Drawable):
 
         return None
     
-    def draw_win_helper(self, array_cuted, blit_pos, win_size=(100,100)):
+    def draw_win_helper(self, array_cuted, blit_pos):
 
         
-        H2_win, W2_win = win_size[0]//2, win_size[1]//2
+        H2_win, W2_win = self.helper_win_size[0]//2, self.helper_win_size[1]//2
         
         W_m, H_m = self.parent.screen_mouse_pos
 
@@ -133,7 +150,7 @@ class Image(Drawable):
             W_s, H_s = self.parent.screen.get_size()
 
 ##            # Blit button right
-##            blit_pos_helper = pm.Vector2(W_s-win_size[1], H_s-win_size[0])
+##            blit_pos_helper = pm.Vector2(W_s-self.helper_win_size[1], H_s-self.helper_win_size[0])
 
             # Mouse Pos
             blit_pos_helper = pm.Vector2(W_m+W2_win, H_m+H2_win)
@@ -146,13 +163,36 @@ class Image(Drawable):
             r_h = W_m_a + W2_win
             
             array_helper = array_cuted[l_h:r_h, t_h:b_h]
-            array_proc = self.proc_array_helper(array_helper)
+            array_proc, array_proc_bool = self.proc_array_helper(array_helper)
 
+
+            sequ_v = self.helper_d_m[array_proc_bool]
+            if sequ_v.shape[0] > 0:
+                i_min   = np.argmin( sequ_v )
+                p_min_v = self.helper_idx_m[array_proc_bool][i_min]
+##                print('if:', p_min_v)
+                
+            else:
+                p_min_v = np.array( [W2_win, H2_win] )
+##                print('else:', p_min_v)
+
+            # Pintamos un poco
+            array_proc[p_min_v[0]-2:p_min_v[0]+3, p_min_v[1]-2:p_min_v[1]+3] = np.array( (255,0,0) )
+
+            self.helper_p_min_v = pm.Vector2(*p_min_v)
+            
             if self.blit_helper:
                 img_helper = pg.surfarray.make_surface(array_proc)
                 self.parent.screen.blit(img_helper, blit_pos_helper)
 
         return None
+
+
+    def get_helper_p_min_v(self):
+        if self.run_helper or self.helper_p_min_v is None:
+            self.helper_p_min_v =  self.parent.screen_mouse_pos
+
+        return self.helper_p_min_v
 
 
     def draw_image(self):
