@@ -1,4 +1,4 @@
-# Handwriting Plotter
+# Handwriting Editor
 
 El objetivo del **Plotter** es poder transcribir la escritura de las cartas en vectores de puntos para utilizarlo de *DataSet* para entrenar la red neuronal.
 
@@ -141,6 +141,7 @@ Para Cargar lo guardado:
 1) Mantener presionada la tecla Ctrl
 2) Presionar la Tecla L
 
+Nota: El editor pregutna antes de cerrarlo si es que se quiere guardar cambios no salvados.
 
 ## Modo User
 
