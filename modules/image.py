@@ -29,8 +29,8 @@ class Image(Drawable):
 
         self.run_helper       = False
         self.blit_helper      = False
-        self.helper_p_min_v   = None
-        self.helper_win_size  = (100,100)
+        self.helper_p_min_v   = pm.Vector2(0,0)
+        self.helper_win_size  = (80,80)
         self._calc_helper_dist_matrixes()
 
 
@@ -62,14 +62,14 @@ class Image(Drawable):
             self.img_array = cv2.imread(self.filename)[:, :, ::-1]
             self.original_size_v = self.img_array.shape[1::-1]
             
-##            self.pg_img = pg.image.load(self.filename)
-##            self.original_size_v = self.pg_img.get_size()
             return True
         
         except:
             print(' - WARNING, Image, no se pudo abrir la imagen:', self.filename, file=sys.stderr)
             return False
 
+    def get_image_filename(self):
+        return self.filename
         
     def _ask_image_path(self):
         self.filename = input(' - Entre la dirección de la imagen a utilizar: ')
@@ -131,7 +131,7 @@ class Image(Drawable):
     def deactivate_mouse_helper(self):
         self.run_helper       = False
         self.blit_helper      = False
-
+        self.helper_p_min_v   = pm.Vector2(0,0)
         return None
     
     def draw_win_helper(self, array_cuted, blit_pos):
@@ -176,23 +176,26 @@ class Image(Drawable):
                 p_min_v = np.array( [W2_win, H2_win] )
 ##                print('else:', p_min_v)
 
-            # Pintamos un poco
-            array_proc[p_min_v[0]-2:p_min_v[0]+3, p_min_v[1]-2:p_min_v[1]+3] = np.array( (255,0,0) )
+            
 
-            self.helper_p_min_v = pm.Vector2(*p_min_v)
+            self.helper_p_min_v = ( int(p_min_v[0] - W2_win), int(p_min_v[1] - H2_win) )
             
             if self.blit_helper:
+                # Pintamos un poco
+                array_proc[p_min_v[0]-2:p_min_v[0]+3, p_min_v[1]-2:p_min_v[1]+3] = np.array( (255,0,0) )
+                
                 img_helper = pg.surfarray.make_surface(array_proc)
                 self.parent.screen.blit(img_helper, blit_pos_helper)
+                
+                pg.draw.circle(self.parent.screen, (255,0,0), self.get_helper_screen_pos(), 3, 3)
 
+                
         return None
 
 
-    def get_helper_p_min_v(self):
-        if self.run_helper or self.helper_p_min_v is None:
-            self.helper_p_min_v =  self.parent.screen_mouse_pos
-
-        return self.helper_p_min_v
+    def get_helper_screen_pos(self):
+        return (int(self.parent.screen_mouse_pos[0] + self.helper_p_min_v[0]),
+                int(self.parent.screen_mouse_pos[1] + self.helper_p_min_v[1]))
 
 
     def draw_image(self):

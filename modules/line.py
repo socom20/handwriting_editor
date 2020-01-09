@@ -37,6 +37,8 @@ class Line(Drawable):
 
         self.value = 1.0
 
+        self.draw_cont_line = False
+
         assert len(pos_points_list) == len(e_points_list), ' Deben ser iguales: len(pos_points_list) == len(e_points_list)'
         return None
 
@@ -75,6 +77,14 @@ class Line(Drawable):
             self.is_drawing = False
             self.screen_mouse_point_v.clear()
 
+        return None
+
+    def start_continuous_line(self):
+        self.draw_cont_line = True
+        return None
+
+    def end_continuous_line(self):
+        self.draw_cont_line = False
         return None
 
     def extend_line(self, screen_point, solid=True):
@@ -140,11 +150,21 @@ class Line(Drawable):
         if len(self.points_list) > 0:
             to_draw.append( self.parent.coord_canvas2coord_screen(self.points_list[-1]) )
 
-        to_draw += self.screen_mouse_point_v
+        if self.parent.mouse_helper_on:
+            to_draw.append( self.parent.get_helper_screen_pos() )
+        else:
+            to_draw += self.screen_mouse_point_v
 
         if len( to_draw ) > 1:
             pg.draw.lines(self.parent.screen, self.parent.EM_obj_line_selected_c, False, to_draw, self.width)
 
+            if self.draw_cont_line:
+                d_length = np.sqrt( np.square(to_draw[1][0] - to_draw[0][0])+np.square(to_draw[1][1] - to_draw[0][1]) ) / self.parent.global_zoom_factor
+
+##                print(d_length)
+                if d_length > self.parent.canvas_d_cont_line:
+                    self.extend_line(to_draw[1], solid=True)
+                
         return None
 
         
@@ -164,7 +184,7 @@ class Line(Drawable):
             
             pos0 = tuple(int(p) for p in points_list_screen[i-1])
             pos1 = tuple(int(p) for p in points_list_screen[i])
-
+            
             if sel:
                 line_width = self.width + 2
                 if e == 0:
@@ -201,8 +221,9 @@ class Line(Drawable):
                     dot_color = self.parent.color_dot_e1
                 
             pg.draw.circle(self.parent.screen, dot_color, pos, circle_r, circle_r)
-            
-        self.draw_screen_lines()
+
+        if self.is_drawing:
+            self.draw_screen_lines()
         
         return None
 

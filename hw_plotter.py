@@ -20,6 +20,11 @@ from modules.thorpymenu import ThorpyMenu
 from modules.line import Line
 from modules.image import Image
 
+import traceback
+import argparse
+
+
+
 
 class Plotter:
 
@@ -67,8 +72,12 @@ class Plotter:
         self.last_click           = None
 
 
+        self.canvas_d_cont_line  = 2.5
+        self.do_start_cont_line  = False
+        
         self.mouse_helper_on      = False
 
+        self.unsave_changes       = False
         
         self.file_name = 'salvado.ptr'
 
@@ -247,13 +256,19 @@ class Plotter:
     def _onEditionChanged(self):
         self.undo_update()            
         self.onEditionChanged = False
+        self.unsave_changes   = True
         return None
 
+    def set_canvas_d_cont_line(self, value):
+        self.canvas_d_cont_line = value
+
+        
     def get_editor_state(self):
         
         set_plotter = json.dumps({'type':'Plotter',
                                   'set_args_d': {'global_zoom_factor':  float(self.global_zoom_factor),
-                                                 'global_pos':         [float(x) for x in self.global_pos]
+                                                 'global_pos':         [float(x) for x in self.global_pos],
+                                                 'canvas_d_cont_line': float(self.canvas_d_cont_line),
                                                  }
                                   } )
         state_v = [set_plotter]
@@ -297,7 +312,7 @@ class Plotter:
            clockwise = True:  horario
            clockwise = False: anti-horario """
 
-        to_rotate_v = [o for o in self.edit_obj_list_v + self.obj_list_v if type(o) is not str]
+        to_rotate_v = [o for o in self.edit_obj_list_v + self.obj_list_v]
         
         if len(to_rotate_v) == 0:
             return None
@@ -336,6 +351,7 @@ class Plotter:
         self.undo_v.append(state_v)
         self.undo_pointer = len(self.undo_v)-1
 
+        
         return None
 
 
@@ -541,30 +557,77 @@ class Plotter:
     
     def main_loop(self):
         """Loop principal"""
-        while self.is_running:
 
-            self.event_handler()
+        from tkinter import Tk
+        from tkinter import messagebox
+    
+        n_err_max = 2
+        n_err = 0
 
-            if self.debugging_Mode:
-                pass
-                self.debug_txt.print('DEBUGGING MODE {}'.format('ON' if self.debugging_Mode else 'OFF'),
-                                     'EDIT MODE {}'.format('ON' if self.edit_Mode else 'OFF'),
-                                     '{} : {}'.format('Time', pg.time.get_ticks()),
-                                     '{} : {:0.2f}'.format('Fps', self.clock.get_fps()),
-                                     '{} : {:0.2f}'.format('Tick', self.clock_tick),                                     
-                                     '{} : {:.2f}'.format('Zoom factor',self.global_zoom_factor),
-                                     '{} : {:d}'.format('obj count', len(self.edit_obj_list_v)+len(self.obj_list_v)),
-                                     '{} : {}'.format('Canvas Pos', self.canvas_mouse_pos),
-                                     '{} : {}'.format('Screen Pos', self.screen_mouse_pos)
-                                     )
 
-                                                           
-            self.canvas_mouse_pos = self.coord_screen2coord_canvas(self.screen_mouse_pos)
-            self.update_display()
+        self.onEditionChanged = False
+        while self.is_running and n_err < n_err_max:
+
+            try:
+                self.event_handler()
+
+                if self.debugging_Mode:
+                    pass
+                    self.debug_txt.print('DEBUGGING MODE {}'.format('ON' if self.debugging_Mode else 'OFF'),
+                                         'EDIT MODE {}'.format('ON' if self.edit_Mode else 'OFF'),
+                                         '{} : {}'.format('Time', pg.time.get_ticks()),
+                                         '{} : {:0.2f}'.format('Fps', self.clock.get_fps()),
+                                         '{} : {:0.2f}'.format('Tick', self.clock_tick),                                     
+                                         '{} : {:.2f}'.format('Zoom factor',self.global_zoom_factor),
+                                         '{} : {:d}'.format('obj count', len(self.edit_obj_list_v)+len(self.obj_list_v)),
+                                         '{} : {}'.format('Canvas Mouse Pos', self.canvas_mouse_pos),
+                                         '{} : {}'.format('Screen Mouse Pos', self.screen_mouse_pos),
+                                         '{} : {}'.format('Mouse Helper', 'ON' if self.mouse_helper_on else 'OFF'),
+                                         '{} : {}'.format('Delta Cont Line', self.canvas_d_cont_line)
+                                         )
+
+                                                               
+                self.canvas_mouse_pos = self.coord_screen2coord_canvas(self.screen_mouse_pos)
+                self.update_display()
+                
+                n_err = 0
+                
+            except Exception as e:
+                n_err += 1
+
+                print('\n\n\n')
+                print(' -'*70, file=sys.stderr)
+                print(' ERROR: ', e, file=sys.stderr)
+                traceback.print_exc()
+                
+                print(' Ecurrió un error en el editor. Se guardará un archivo de recuperación. *.ptr.rec', file=sys.stderr)
+
+                file_name = self.file_name + '.bak'
+                with open(file_name, 'w') as f:
+                    f.write( '\n'.join(self.get_editor_state()) )
         
+                print(' Archivo "{}" salvado. Para recuperar el trabajo cambie la extensión *.ptr.rec a *.ptr (se recomienda no perder el último salvado *.ptr sin error)'.format(file_name))
+                print('Ahora se trata de recuperar el editor ...')
+
+        if n_err == n_err_max:
+            print(' Lamentablemente el editor no se pudo recuperar del error, Se procede a terminar el proceso.', file=sys.stderr)
+        else:
+            if self.unsave_changes:
+                Tk().wm_withdraw()
+                resp = messagebox.askyesno('Cerrando editor ...', 'Desea Salvar los último cambios?')
+
+                if resp:
+                    self.save()
+            
         pg.quit()
         pg.display.quit()
 
+        return None
+
+
+    def add_delta_cont_line(self, canvas_delta_delta=+1):
+        self.canvas_d_cont_line += canvas_delta_delta
+        self.canvas_d_cont_line = min(max(0.5, self.canvas_d_cont_line), 10)
         return None
 
     def update_mouse_pos(self, pos):
@@ -652,13 +715,14 @@ class Plotter:
     def new_image(self, screen_pos=(0,0), image_path='./CartaA.png'):
         """Genero un nuevo objeto Image"""
 
-        self.file_name = os.path.splitext(image_path)[0] + '.ptr'
-        
         pos = self.coord_screen2coord_canvas(screen_pos=screen_pos)
         
         new_obj = Image(pos=pos,
                         filename=image_path,
                         parent=self)
+
+        self.file_name = os.path.splitext( new_obj.get_image_filename() )[0] + '.ptr'
+
         
         self.obj_list_v.append(new_obj)
         self.onEditionChanged = True
@@ -678,13 +742,36 @@ class Plotter:
         return new_obj
 
     def extend_junction(self, point):
-        j = self.edit_obj_list_v[0]
-        j.extend_line(point)
+        if len(self.edit_obj_list_v) > 0:
+            j = self.edit_obj_list_v[0]
+            j.extend_line(point)
         return None
 
+    def _start_cont_line(self):
+        if len(self.edit_obj_list_v) > 0:
+            j = self.edit_obj_list_v[0]
+            j.start_continuous_line()
+
+        return None
+    
+
+    def start_cont_line(self):
+        self.do_start_cont_line = True
+            
+        return None
+    
+    def end_cont_line(self):
+        self.do_start_cont_line = False
+        
+        if len(self.edit_obj_list_v) > 0:
+            j = self.edit_obj_list_v[0]
+            j.end_continuous_line()
+        return None
+    
     def update_mouse_pos_junction(self, point):
-        j = self.edit_obj_list_v[0]
-        j.update_mouse_pos(point)
+        if len(self.edit_obj_list_v) > 0:
+            j = self.edit_obj_list_v[0]
+            j.update_mouse_pos(point)
         return None
         
     def end_edit_junction(self):
@@ -699,6 +786,8 @@ class Plotter:
             
         self.drawing_junction = False
         self.onEditionChanged = True
+
+        self.end_cont_line()
         self.using_aux_axes   = False
         return None
     
@@ -742,6 +831,18 @@ class Plotter:
 
         return None
 
+
+    def get_helper_screen_pos(self):
+        for o in self.obj_list_v + self.edit_obj_list_v:
+            if type(o) is Image:
+                return o.get_helper_screen_pos()
+
+        print('WARNING, no se encontró una imagen.', file=sys.stderr)
+        
+        return self.screen_mouse_pos
+                
+
+        
     def get_global_pos(self):
         return self.global_pos
 
@@ -793,7 +894,9 @@ class Plotter:
                     self.onEditionChanged = True
                     self.pos_is_dragging = False
 
-                
+                if self.drawing_junction:
+                    self.end_cont_line()
+                    
             # PRESIONO UN BOTON DEL MOUSE
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if self.slider is not None:
@@ -807,6 +910,7 @@ class Plotter:
 
                         if self.drawing_junction:
                             self.extend_junction(event.pos)
+                            self.start_cont_line()
 
                         
                         # se selecciona el objeto clickeado
@@ -841,6 +945,10 @@ class Plotter:
 
                 if self.drawing_junction:
                     self.update_mouse_pos_junction(event.pos)
+
+                    if self.do_start_cont_line:
+                        self._start_cont_line()
+                        self.do_start_cont_line = False
                 
                 mouseState = pg.mouse.get_pressed()
                 if mouseState[1]:  # Ruedita apretada
@@ -900,12 +1008,17 @@ class Plotter:
                     elif (event.key == pg.K_h):
                         self.switch_helper()
 
+                    elif (event.key == pg.K_KP_PLUS):
+                        self.add_delta_cont_line(0.5)
+
+                    elif (event.key == pg.K_KP_MINUS):
+                        self.add_delta_cont_line(-0.5)
+
                     elif (event.key == pg.K_c):
                         self.cut_at_point()
                         
                     elif (event.key == pg.K_a):
                         self.add_mid_point()
-
 
                     elif (event.key == pg.K_s) and not pressed_ctrl:
                         self.select_all_points()
@@ -913,9 +1026,9 @@ class Plotter:
                     elif (event.key == pg.K_m):
                         self.merge_lines()
                         
-                    elif (event.key == pg.K_i):
-                        print('New Image')
-                        self.new_image()
+##                    elif (event.key == pg.K_i):
+##                        print('New Image')
+##                        self.new_image()
 
                     elif (event.key == pg.K_l) and not pressed_ctrl:
                         print('New Line')
@@ -974,7 +1087,8 @@ class Plotter:
         print(' Salvando en archivo {0}'.format(self.file_name))
         with open(self.file_name, 'w') as f:
             f.write( '\n'.join(self.get_editor_state()) )
-                
+
+        self.unsave_changes = False            
         return None
     
 
@@ -1009,14 +1123,30 @@ class Plotter:
         self.undo_pointer = -1
         self.undo_v       = []
         self.onEditionChanged = True
+        
+        self.mouse_helper_on = False
         return None
+
     
 if __name__ =='__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ImgFileName",
+                        help="La dirección de la imagen a cargar.",
+                        type=str)
+
+    if 1:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(['./samples/CartaA.png'])
+
+    
     ptr = Plotter()
     ptr.switch_mode()
-    ptr.new_image(image_path='./samples/CartaA.png')
-    ptr.switch_helper()
+
+    ptr.new_image(image_path=args.ImgFileName)
+    ptr.load()
+##    ptr.switch_helper()
     
     ptr.main_loop()
 

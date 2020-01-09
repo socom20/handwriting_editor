@@ -18,10 +18,20 @@ pip3 install opencv-contrib-python
 pip3 install scikit-image
 pip3 install pygame
 pip3 install thorpy
+pip3 install tkinter
+
 pip3 install numpy
 pip3 install scipy
 pip3 install matplotlib
 ```
+
+# Lanzar el editor
+
+Desde la consola ejecutar por ejemplo:
+```
+python3 hw_plotter.py ./samples/CartaA.png
+```
+
 
 # Manual de usuario del editor HW_Plotter
 
@@ -37,6 +47,15 @@ Para continuar un Trazo:
 1) Seleccionar un punto del Trazo que se desea continuar con el botón izquierdo de mouse.
 2) Presionar la tecla L
 3) Seguir editando.
+
+Para crear un nuevo Trazo Continuo:
+1) Botón Izquierdo para colocar el primer punto.
+2) mover el mouse con el Botón Izquierdo presionado para dibujar el trazo.
+
+Cambiar el espaciado de los punto en el trazo continuo
+1) Precionar la Tecla + del numpad para aumentar el espaciado de los puntos
+2) Precionar la Tecla - del numpad para dismunuir el espaciado de los puntos
+Nota: Se puede ver el espaciado que se está utilizando en el modo Debug
 
 Para borrar un punto de un Trazo:
 1) Seleccionar el punto con botón izquierdo
@@ -136,6 +155,17 @@ Para pasar a modo FullScreen o volver del modo FullScreen
 
 Para Activar/Desactivar la herrmienta Helper del mouse
 1) Precionar la Tecla H
+
+
+## Control de Excepciones
+
+Si es que hay un fallo en la ejecución del editor, éste intentará recuperarse del fallo.
+Antes de tratar de recuperarse, se intenta guardar una archivo de recuperación **nombre_imagen.ptr.rec**.
+Se podría relanzar el editor modificando el nombre del archivo **nombre_imagen.ptr.rec** a **nombre_imagen.ptr**.
+Se recomienda no perder el último salvado sin error antes de modificar el nombre del archivo de recuperación.
+
+
+
 
 
 
