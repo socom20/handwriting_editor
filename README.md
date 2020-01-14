@@ -32,6 +32,11 @@ Desde la consola ejecutar por ejemplo:
 python3 hw_plotter.py ./samples/CartaA.png
 ```
 
+O simplemente:
+```
+python3 hw_plotter.py
+```
+Así se muestra un cuadro de diálogo para elegir el archivo de imagen con el que se desea trabajar.
 
 # Manual de usuario del editor HW_Plotter
 

@@ -42,6 +42,10 @@ class Image(Drawable):
             
         while self.filename is None or self._load_image() == False:
             self._ask_image_path()
+            if self.filename == '':
+                print(' - WARNING: Se canceló la operación de apertura de imagen.', file=sys.stderr)
+                self.parent.quit()
+                break
             
         return None
 
@@ -71,8 +75,17 @@ class Image(Drawable):
     def get_image_filename(self):
         return self.filename
         
-    def _ask_image_path(self):
-        self.filename = input(' - Entre la dirección de la imagen a utilizar: ')
+    def _ask_image_path(self, use_tk=True):
+        if use_tk:
+            from tkinter import Tk
+            from tkinter import filedialog
+
+            Tk().wm_withdraw()
+            
+            self.filename = filedialog.askopenfilename(initialdir = "./",title = "Abriendo imagen a editar",filetypes = (("Image files", "*.jpg;*.jpeg;*.png;*.bmp;*.gif"), ("jpeg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp"),("gif files","*.gif"),("all files","*.*")))
+                
+        else:
+            self.filename = input(' - Entre la dirección de la imagen a utilizar: ')
         return None
     
     def __repr__(self):
@@ -197,7 +210,11 @@ class Image(Drawable):
         return (int(self.parent.screen_mouse_pos[0] + self.helper_p_min_v[0]),
                 int(self.parent.screen_mouse_pos[1] + self.helper_p_min_v[1]))
 
+    def get_pos(self):
+        """Retorna la posición actual del pipe"""
+        return self.pos
 
+    
     def draw_image(self):
         """ Plotea la imagene en el objeto screen."""
 

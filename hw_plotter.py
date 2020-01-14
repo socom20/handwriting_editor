@@ -24,6 +24,8 @@ import traceback
 import argparse
 
 
+from tkinter import Tk
+from tkinter import messagebox
 
 
 class Plotter:
@@ -553,17 +555,35 @@ class Plotter:
 
         return None
         
+    def default_start(self):
+        
+
+        if len(sys.argv) != 1:
+            parser = argparse.ArgumentParser()
+            parser.add_argument("ImgFileName",
+                                help="La dirección de la imagen a cargar.",
+                                type=str)
+            
+            args = parser.parse_args()
+            image_path = args.ImgFileName
+        else:
+            image_path = './samples/CartaA.png'
+            image_path = None
+
+        
+        self.switch_mode()
+        self.new_image(image_path=image_path)
+        self.load()
+        self.switch_helper()
+        
+        self.onEditionChanged = False
+        return None
     
-    
-    def main_loop(self):
+    def main_loop(self, do_default_start=False):
         """Loop principal"""
 
-        from tkinter import Tk
-        from tkinter import messagebox
-    
         n_err_max = 2
         n_err = 0
-
 
         self.onEditionChanged = False
         while self.is_running and n_err < n_err_max:
@@ -589,9 +609,12 @@ class Plotter:
                                                                
                 self.canvas_mouse_pos = self.coord_screen2coord_canvas(self.screen_mouse_pos)
                 self.update_display()
-                
+
+                if do_default_start:
+                    self.default_start()
+                    do_default_start = False
+                    
                 n_err = 0
-                
             except Exception as e:
                 n_err += 1
 
@@ -613,6 +636,7 @@ class Plotter:
             print(' Lamentablemente el editor no se pudo recuperar del error, Se procede a terminar el proceso.', file=sys.stderr)
         else:
             if self.unsave_changes:
+                
                 Tk().wm_withdraw()
                 resp = messagebox.askyesno('Cerrando editor ...', 'Desea Salvar los último cambios?')
 
@@ -1096,7 +1120,7 @@ class Plotter:
         """Cargamos un archivo de salvado."""
 
         if not os.path.exists(self.file_name):
-            print(' ERROR, No se encontró el archivo: "{}", no se podrá cargarlo.'.format(self.file_name), file=sys.stderr)
+            print(' - WARNING, No se encontró el archivo: "{}", no se podrá cargarlo.'.format(self.file_name), file=sys.stderr)
             return None
         
         print(' Cargando !!!!')
@@ -1127,29 +1151,12 @@ class Plotter:
         self.mouse_helper_on = False
         return None
 
-    
+
+
+
 if __name__ =='__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("ImgFileName",
-                        help="La dirección de la imagen a cargar.",
-                        type=str)
-
-    if 1:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(['./samples/CartaA.png'])
-
-    
     ptr = Plotter()
-    ptr.switch_mode()
-
-    ptr.new_image(image_path=args.ImgFileName)
-    ptr.load()
-##    ptr.switch_helper()
-    
-    ptr.main_loop()
-
-    
+    ptr.main_loop( do_default_start=True )
 
     print('Programa Finalizado !!!')
