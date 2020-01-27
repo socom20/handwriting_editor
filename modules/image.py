@@ -82,7 +82,7 @@ class Image(Drawable):
 
             Tk().wm_withdraw()
             
-            self.filename = filedialog.askopenfilename(initialdir = "./",title = "Abriendo imagen a editar",filetypes = (("Image files", "*.jpg;*.jpeg;*.png;*.bmp;*.gif"), ("jpeg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp"),("gif files","*.gif"),("all files","*.*")))
+            self.filename = filedialog.askopenfilename(initialdir = "./",title = "Abriendo imagen a editar",filetypes = (("Image files", "*.jpg *.jpeg *.png *.bmp *.gif"), ("jpeg files","*.jpg"),("png files","*.png"),("bmp files","*.bmp"),("gif files","*.gif"),("all files","*.*")))
                 
         else:
             self.filename = input(' - Entre la dirección de la imagen a utilizar: ')
