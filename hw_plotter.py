@@ -38,7 +38,7 @@ class Plotter:
         self.global_pos           = pm.Vector2(0, -self.screen_size[1]) # coord canvas    
         self.global_zoom_factor   = 1.0 # coord screen
         self.global_zoomf_min     = 0.2
-        self.global_zoomf_max     = 7
+        self.global_zoomf_max     = 10
         self.screen_mouse_pos     = pm.Vector2(0,0) # coord screen
         self.screen_mouse_dx      = 0
         self.screen_mouse_dy      = 0
@@ -575,7 +575,8 @@ class Plotter:
         self.new_image(image_path=image_path)
         self.load()
         self.switch_helper()
-        
+
+        self.undo_update()
         self.onEditionChanged = False
         return None
     

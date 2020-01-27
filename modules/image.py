@@ -63,7 +63,8 @@ class Image(Drawable):
 
     def _load_image(self):
         try:
-            self.img_array = cv2.imread(self.filename)[:, :, ::-1]
+            self.img_array = cv2.imread(self.filename)[..., ::-1]
+##            print('Image shape:', self.img_array.shape)
             self.original_size_v = self.img_array.shape[1::-1]
             
             return True
