@@ -11,7 +11,7 @@ class Line(Drawable):
                  text='Empty',
                  pos=(100.0, 100.0),
                  txt_size=10,
-                 width=3,
+                 width=2,
                  is_drawing=False,
                  pos_points_list=[],
                  e_points_list=[],
@@ -25,7 +25,7 @@ class Line(Drawable):
         self.e_points_list    = e_points_list[:]
         self.sel_point_list   = [False for i in e_points_list]
         self.parent           = parent
-        self.width            = width
+        self.width            = 2
      
 
         self.points_list          = []
@@ -33,17 +33,19 @@ class Line(Drawable):
         self.screen_mouse_point_v = []
         self.color_able           = False
         self.isSelected           = False
-        self.is_in_window         = True
 
         self.value = 1.0
 
         self.draw_cont_line = False
+        self.is_in_win = True
 
         assert len(pos_points_list) == len(e_points_list), ' Deben ser iguales: len(pos_points_list) == len(e_points_list)'
+
+        self.update_box()
         return None
 
     def __repr__(self):
-        name = 'AUX_LINE {}'.format(self.text)
+        name = 'Line {}'.format(self.text)
         return name
 
     def update_mouse_pos(self, screen_point):
@@ -77,6 +79,8 @@ class Line(Drawable):
             self.is_drawing = False
             self.screen_mouse_point_v.clear()
 
+        self.update_box()
+        
         return None
 
     def start_continuous_line(self):
@@ -85,6 +89,7 @@ class Line(Drawable):
 
     def end_continuous_line(self):
         self.draw_cont_line = False
+        self.update_box()
         return None
 
     def extend_line(self, screen_point, solid=True):
@@ -110,7 +115,8 @@ class Line(Drawable):
 
         else:
             print('WARNING, Junction, no se puede extender la junction si is_drawing == False', file=sys.stderr)
-     
+            
+        self.update_box()         
         return None
     
     def short_line(self):
@@ -125,22 +131,34 @@ class Line(Drawable):
                 
         else:
             print('WARNING, Junction, no se puede acortar la junction si is_drawing == False', file=sys.stderr)
-            
+
+        self.update_box()
+        return None
+
+
+    def is_in_window(self):
+        return self.is_in_win or self.is_drawing
+
+
+    def update_is_in_window(self, win_canvas_v, win_screen_v):
+##        print('update_is_in_window')
+        self.is_in_win = self.collide_rect(win_canvas_v, win_screen_v)
         return None
 
     
 
     def draw(self, screen):
         """Dibujamos en pantalla la linea"""
-        self.update()
+            
+##        self.update()
 
         self.draw_line()
         
-        if len(self.points_list) > 1:
-            if self.parent.global_zoom_factor > 0.21:
-                #dibujamos la descripción del esquema
-                self.draw_name()
-
+##        if len(self.points_list) > 1:
+##            pass
+        #dibujamos la descripción del esquema
+        self.draw_name()
+            
         return None
 
     def draw_screen_lines(self):
@@ -178,6 +196,12 @@ class Line(Drawable):
         else:
             n_dots = min(len(points_list_screen), max(min(1, len(points_list_screen)), int(self.value * len(points_list_screen))))
 
+
+        if self.parent.global_zoom_factor < 2.0:
+            zoom_w = 1
+        else:
+            zoom_w = 0
+            
         for i in range(1, n_dots):
             e   = self.e_points_list[i]
             sel = self.sel_point_list[i]
@@ -186,41 +210,42 @@ class Line(Drawable):
             pos1 = tuple(int(p) for p in points_list_screen[i])
             
             if sel:
-                line_width = self.width + 2
+                line_width = self.width + 3 + zoom_w
                 if e == 0:
                     line_color  =  self.parent.color_line_e0_sel
                 else:
                     line_color  = self.parent.color_line_e1_sel
             else:
-                line_width = self.width
+                line_width = self.width + zoom_w
                 if e == 0:
                     line_color  =  self.parent.color_line_e0
                 else:
                     line_color  = self.parent.color_line_e1
                 
-            pg.draw.line(self.parent.screen, line_color, pos0, pos1)
+            pg.draw.line(self.parent.screen, line_color, pos0, pos1, line_width)
             
-            
-        for i in range(n_dots):
-            e   = self.e_points_list[i]
-            sel = self.sel_point_list[i]
-            
-            pos = tuple(int(p) for p in points_list_screen[i])
+
+        if self.parent.global_zoom_factor > 2.0 or n_dots == 1:
+            for i in range(n_dots):
+                e   = self.e_points_list[i]
+                sel = self.sel_point_list[i]
                 
-            if sel:
-                circle_r = self.width + 4
-                if e == 0:
-                    dot_color = self.parent.color_dot_e0_sel
+                pos = tuple(int(p) for p in points_list_screen[i])
+                    
+                if sel:
+                    circle_r = self.width + 4
+                    if e == 0:
+                        dot_color = self.parent.color_dot_e0_sel
+                    else:
+                        dot_color = self.parent.color_dot_e1_sel
                 else:
-                    dot_color = self.parent.color_dot_e1_sel
-            else:
-                circle_r = self.width + 2
-                if e == 0:
-                    dot_color = self.parent.color_dot_e0
-                else:
-                    dot_color = self.parent.color_dot_e1
-                
-            pg.draw.circle(self.parent.screen, dot_color, pos, circle_r, circle_r)
+                    circle_r = self.width + 2
+                    if e == 0:
+                        dot_color = self.parent.color_dot_e0
+                    else:
+                        dot_color = self.parent.color_dot_e1
+                    
+                pg.draw.circle(self.parent.screen, dot_color, pos, circle_r, circle_r)
 
         if self.is_drawing:
             self.draw_screen_lines()
@@ -279,6 +304,27 @@ class Line(Drawable):
         return None
 
 
+    def collide2(self, screen_mouse_pos):
+        """Verifica si existe o no colisión entre screen_mouse_pos y el objeto.
+           Retorna Verdadero si hay colisión
+           Retorna Falso si no existe colisión"""
+        
+        canvas_mouse_pos =  self.parent.coord_screen2coord_canvas(screen_mouse_pos)
+
+        points_list = self.retrieve_corners()
+        p_list = points_list + points_list[:1]
+        
+        for i_p in range(len(p_list)-1):
+            dM = canvas_mouse_pos - p_list[i_p]
+            dp = p_list[i_p+1]    - p_list[i_p]
+            
+            outside = dM.x * dp.y  < dM.y * dp.x
+            if outside:
+                return False
+            
+        return True
+    
+
     def collide(self, screen_mouse_pos):
         if self._collide(screen_mouse_pos) is None:
             return False
@@ -312,7 +358,9 @@ class Line(Drawable):
         # Modificamos el ángulo de los vectores de la polilinea 
         for v in self.pos_points_list:
             v.rotate_ip(angle)
-            
+
+
+        self.update_box()
         return None
 
 
@@ -328,12 +376,6 @@ class Line(Drawable):
                                    'e_points_list':   [float(x) for x in self.e_points_list]}}
 
         return json.dumps(to_save)
-
-    def return_box(self):
-        x_coords = [p.x for p in self.points_list]
-        y_coords = [p.y for p in self.points_list]
-
-        return (min(x_coords), max(x_coords)), (min(y_coords), max(y_coords))
 
 
 
@@ -393,7 +435,8 @@ class Line(Drawable):
             self.pos += d_pos
             for i_p in range(len(self.pos_points_list)):
                 self.pos_points_list[i_p] -= d_pos
-            
+
+        self.update_box()
         return None
 
     def change_e(self):
@@ -401,6 +444,7 @@ class Line(Drawable):
             if self.sel_point_list[i_p]:
                 self.e_points_list[i_p] = not self.e_points_list[i_p]
 
+        self.update_box()
         return None
 
 
@@ -417,6 +461,7 @@ class Line(Drawable):
             for i_p in range(len(self.pos_points_list)):
                 self.pos_points_list[i_p] -= d_pos
 
+        self.update_box()
         return None
 
 
@@ -451,8 +496,10 @@ class Line(Drawable):
                 self.e_points_list   = self.e_points_list[:i_p]
                 self.sel_point_list  = self.sel_point_list[:i_p]
 
+                self.update_box()
                 return new_line
 
+        self.update_box()
         return None
 
 
@@ -466,7 +513,8 @@ class Line(Drawable):
         
         self.sel_point_list  += line.sel_point_list
         self.text += ' ' + line.text
-        
+
+        self.update_box()
         return None
 
 
@@ -484,7 +532,8 @@ class Line(Drawable):
                 self.sel_point_list  = self.sel_point_list[:i_p] + [True] + self.sel_point_list[i_p:]
 
                 to_ret = True
-                
+
+        self.update_box()
         return to_ret
         
     def select_all_points(self):
@@ -517,6 +566,7 @@ class Line(Drawable):
     def set_pos(self, pos):
         """Se modifica la posición de la linea"""
         self.pos = pm.Vector2(*pos)
+        self.update_box()
         return None
 
     def get_pos(self):
@@ -528,9 +578,33 @@ class Line(Drawable):
         """Retorna el angulo actual de la linea"""
         return self.angle
 
+
+    def update_box(self):
+##        print('update_box')
+        self.update()
+        x_coords = [p.x for p in self.points_list]
+        y_coords = [p.y for p in self.points_list]
+        
+        self.box_coords = (min(x_coords,default=0), max(x_coords,default=0)), (min(y_coords,default=0), max(y_coords,default=0))
+
+        return None
+
+
+    def return_box(self):
+        return self.box_coords
+    
+
     def retrieve_corners(self):
-        """Retorna la lista de puntos que conforman la linea"""
-        return self.points_list
+        """Retorna la lista de puntos que rodean a la linea."""
+
+        (x_min, x_max), (y_min,y_max) = self.return_box()
+        
+        points_list_v = [pm.Vector2(x_min, y_min),
+                         pm.Vector2(x_min, y_max),
+                         pm.Vector2(x_max, y_max),
+                         pm.Vector2(x_max, y_min)]
+        
+        return points_list_v
 
 
     def set_value(self, value=1.0):

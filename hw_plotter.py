@@ -81,7 +81,7 @@ class Plotter:
 
         self.unsave_changes       = False
         
-        self.file_name = 'salvado.ptr'
+        self.file_name = 'nuevo_dibujo.ptr'
 
         
         self.palette_color_d = {  'black' :  {'color_1': ( 14, 17, 17),
@@ -137,7 +137,7 @@ class Plotter:
         self.undo_pointer = -1
         self.undo_v       = []
 
-        
+        self.n_obj_drawn = 0
         return None
 
 
@@ -256,6 +256,8 @@ class Plotter:
         return None
 
     def _onEditionChanged(self):
+
+        self.update_is_in_window()
         self.undo_update()            
         self.onEditionChanged = False
         self.unsave_changes   = True
@@ -360,7 +362,7 @@ class Plotter:
     def undo(self):
         """Deshace la ultima edición realizada sobre los objetos"""
         if self.drawing_junction:
-            print('WARNING, undo, No es posible desahcer acciones mientras se edita una junction', file=sys.stderr)
+            print('WARNING, undo, No es posible desahcer acciones mientras se edita una Line', file=sys.stderr)
             return None
         
         if self.undo_pointer > 0:
@@ -373,7 +375,7 @@ class Plotter:
     def redo(self):
         """Rehace la ultima edición realizada sobre los objetos"""
         if self.drawing_junction:
-            print('WARNING, redo, No es posible resahcer acciones mientras se edita una junction', file=sys.stderr)
+            print('WARNING, redo, No es posible resahcer acciones mientras se edita una Line', file=sys.stderr)
             return None
 
         if self.undo_pointer < len(self.undo_v)-1:
@@ -396,6 +398,8 @@ class Plotter:
         if self.global_zoom_factor <= self.global_zoomf_max:
             self.global_zoom_factor = self.global_zoom_factor*1.25
             self.global_pos += pm.Vector2(self.global_pos.x-self.screen_mouse_pos[0], self.global_pos.y+self.screen_mouse_pos[1])*(1.25-1)
+
+        self.update_is_in_window()
         return None
 
     def zoom_out(self):
@@ -403,6 +407,8 @@ class Plotter:
         if self.global_zoom_factor >= self.global_zoomf_min:
             self.global_zoom_factor = self.global_zoom_factor*0.8
             self.global_pos += pm.Vector2(self.global_pos.x-self.screen_mouse_pos[0], self.global_pos.y+self.screen_mouse_pos[1])*(0.8-1)
+
+        self.update_is_in_window()
         return None
 
     def _onSelectionChanged(self):
@@ -425,14 +431,20 @@ class Plotter:
         
         self.screen.fill(self.global_bg_color)
 
+        
+        i_d = 0
         for obj in self.obj_list_v:
-            if obj.is_in_windows:
+            if obj.is_in_window():
+                i_d += 1
                 obj.draw(self.screen)
-
+        
         for obj in self.edit_obj_list_v:
-            if obj.is_in_windows:
+            if obj.is_in_window():
+                i_d += 1
                 obj.draw(self.screen)
-
+        
+        self.n_obj_drawn = i_d
+        
         if not self.edit_Mode:   
             for txt in self.screen_text_v:
                 txt.draw(self.screen)
@@ -445,11 +457,11 @@ class Plotter:
             for d_txt in self.debug_text_v:
                 d_txt.draw(self.screen)
 
-            
         pg.display.flip()
-
-
+        
         return None
+
+    
 
     def switch_mode(self):
         """Cambio el modo (user/edit)"""
@@ -473,6 +485,8 @@ class Plotter:
     def drag_view(self):
         """Desplazo la vista en la pantalla"""
         self.global_pos += pm.Vector2(self.screen_mouse_dx, -self.screen_mouse_dy)
+
+        self.update_is_in_window()
         return None
 
     def del_points(self):
@@ -604,7 +618,9 @@ class Plotter:
                                          '{} : {}'.format('Canvas Mouse Pos', self.canvas_mouse_pos),
                                          '{} : {}'.format('Screen Mouse Pos', self.screen_mouse_pos),
                                          '{} : {}'.format('Mouse Helper', 'ON' if self.mouse_helper_on else 'OFF'),
-                                         '{} : {}'.format('Delta Cont Line', self.canvas_d_cont_line)
+                                         '{} : {}'.format('Delta Cont Line', self.canvas_d_cont_line),
+                                         '{} : {}'.format('Objs Drawn', self.n_obj_drawn)
+                                         
                                          )
 
                                                                
@@ -649,6 +665,18 @@ class Plotter:
 
         return None
 
+    def update_is_in_window(self):
+##        print('Update_is_in_window')
+        display_info = pg.display.Info()
+        window_size  = pm.Vector2(display_info.current_w, display_info.current_h)
+        win_screen_v = [(0,0), (window_size.x, 0), (window_size.x, window_size.y), (0, window_size.y)]
+        win_canvas_v = [self.coord_screen2coord_canvas(v) for v in win_screen_v]
+
+        
+        for o in self.obj_list_v + self.edit_obj_list_v:
+            o.update_is_in_window(win_canvas_v, win_screen_v)
+            
+        return None
 
     def add_delta_cont_line(self, canvas_delta_delta=+1):
         self.canvas_d_cont_line += canvas_delta_delta
@@ -805,9 +833,9 @@ class Plotter:
 
         if len(j.points_list) < 2:
             self.edit_obj_list_v.pop(0)
-            print('No se ha creado ninguna Junction')
+            print('No se ha creado ninguna Line')
         else:
-            print('Junction finalizada', j)
+            print('Dibujo finalizado', j)
             
         self.drawing_junction = False
         self.onEditionChanged = True

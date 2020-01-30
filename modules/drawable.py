@@ -152,17 +152,68 @@ class Drawable():
         print("WARNING, Drawable, Método {} no implementado".format(self.whoami()), file=sys.stderr)
         return None
 
-    def is_in_windows(self):
-        """Retorna si el objeto está dentro o fuera de la ventana"""
-        return self.is_in_windows
-
-    def put_in_windows(self, is_in_windows):
-        self.is_in_windows = is_in_windows
-        return None
-
 
     def retrieve_corners(self):
         """Retorna los puntos de las esquinas del rectangulo que contiene al objeto"""
         print("WARNING, Drawable, Método {} no implementado".format(self.whoami()), file=sys.stderr)
         corner_list_v = [pm.Vector2(0.0,0.0) for i in range(4)]
         return corner_list_v
+
+    def is_in_window(self):
+        return True
+
+    def update_is_in_window(self, win_canvas_v, win_screen_v):
+        return None
+
+    
+    def collide_rect(self, rect_point_v, surface_point_list):
+        """Verifica si existe colision o no entre rect_point_v y el objeto"""
+        
+        obj_corners_v = self.retrieve_corners()
+
+        if self.__class__.__name__ is "Line":
+            # si el rectángulo esta dentro del objeto
+            if all(self.collide2(p) for p in surface_point_list):
+                return True
+        else:
+            if all(self.collide(p) for p in surface_point_list):
+                return True
+
+        # si la posicion del objeto está adentro del rectángulo 
+        if len(obj_corners_v) > 0:
+            obj_pos = obj_corners_v[0]
+            
+            x_min = min(rect_point_v[0].x, rect_point_v[2].x)
+            x_max = max(rect_point_v[0].x, rect_point_v[2].x)
+
+            y_min = min(rect_point_v[0].y, rect_point_v[2].y)
+            y_max = max(rect_point_v[0].y, rect_point_v[2].y)
+            
+            if (x_min <= obj_pos.x < x_max) and (y_min <= obj_pos.y < y_max):
+                return True
+
+        # si alguno de los segmentos del objeto intersecta a algun lado del rectángulo
+        idx_start = -1 if self.__class__.__name__ is not "Junction" else 0
+        for i_p in range(-1, len(rect_point_v)-1):
+            p_0  = rect_point_v[i_p]
+            p_1  = rect_point_v[i_p+1]
+            p0p1 = p_1 - p_0
+            for i_r in range(idx_start, len(obj_corners_v)-1):
+                r_0  = obj_corners_v[i_r]
+                r_1  = obj_corners_v[i_r+1]
+                r0r1 = r_1 - r_0
+                p0r0 = r_0 - p_0
+                
+                det_a = -p0p1.x*r0r1.y + r0r1.x*p0p1.y
+                
+                if det_a == 0:
+                    continue                
+
+                s = (-r0r1.y*p0r0.x + r0r1.x*p0r0.y)/det_a
+                t = (-p0p1.y*p0r0.x + p0p1.x*p0r0.y)/det_a
+
+                if (0 <= s <= 1) and (0 <= t <= 1):
+                    return True
+
+        return False
+    
