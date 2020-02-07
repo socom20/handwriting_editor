@@ -82,6 +82,7 @@ class Plotter:
         self.unsave_changes       = False
         
         self.file_name = 'nuevo_dibujo.ptr'
+        self.image_path = ''
 
         
         self.palette_color_d = {  'black' :  {'color_1': ( 14, 17, 17),
@@ -584,7 +585,7 @@ class Plotter:
             image_path = './samples/CartaA.png'
             image_path = None
 
-        
+
         self.switch_mode()
         self.new_image(image_path=image_path)
         self.load()

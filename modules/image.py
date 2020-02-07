@@ -38,7 +38,8 @@ class Image(Drawable):
         self.last_zoom = None
         self.last_mode = None
 
-        
+        if self.filename is not None and not os.path.exists(self.filename) and os.path.exists(self.parent.image_path):
+            self.filename = self.parent.image_path
             
         while self.filename is None or self._load_image() == False:
             self._ask_image_path()
@@ -66,7 +67,7 @@ class Image(Drawable):
             self.img_array = cv2.imread(self.filename)[..., ::-1]
 ##            print('Image shape:', self.img_array.shape)
             self.original_size_v = self.img_array.shape[1::-1]
-            
+            self.parent.image_path = self.filename
             return True
         
         except:
